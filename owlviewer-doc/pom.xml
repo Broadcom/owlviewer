@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>at.michaelgrath</groupId>
+	<artifactId>owlviewer-doc</artifactId>
+	<packaging>jar</packaging>
+	<parent>
+		<groupId>at.michaelgrath</groupId>
+		<artifactId>owlviewer</artifactId>
+		<version>${revision}</version>
+		<relativePath>../</relativePath>
+	</parent>
+	<organization>
+		<name>Michael Grath</name>
+		<url>http://www.michaelgrath.at</url>
+	</organization>
+    <build> 
+        <plugins>
+			<plugin>
+				<groupId>org.asciidoctor</groupId>
+				<artifactId>asciidoctor-maven-plugin</artifactId>
+				<version>2.1.0</version>
+				<dependencies>
+					<dependency>
+						<groupId>org.asciidoctor</groupId>
+						<artifactId>asciidoctorj-pdf</artifactId>
+						<version>1.5.4</version>
+					</dependency>
+				</dependencies>
+				<configuration>
+					<sourceDirectory>src/main/doc</sourceDirectory>
+					<outputDirectory>target/docs</outputDirectory>
+					<backend>html5</backend>
+				</configuration>
+				<executions>
+					<execution>
+						<id>output-html</id>
+						<phase>generate-resources</phase>
+						<goals>
+							<goal>process-asciidoc</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>3.2.0</version>
+				<configuration>
+					<skipIfEmpty>true</skipIfEmpty>
+				</configuration>
+			</plugin>
+        </plugins>
+    </build>
+</project>

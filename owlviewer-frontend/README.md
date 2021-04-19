@@ -1,0 +1,51 @@
+# OWL Viewer Frontend
+
+This service wraps the React user interface for the visualization of ontologies.
+
+## Prerequisites
+[NodeJS incl. npm](https://nodejs.org/en/) >= 6.14.4
+
+## Build the Spring Boot application
+Use the following command to build a executable _jar_-file that contains all required dependencies:
+```
+mvn clean package spring-boot:repackage
+```
+Actually the following command is sufficient:
+```
+mvn clean package
+```
+## Run the Spring Boot application
+Use the following command to start the application:
+```
+java -jar owlviewer-frontend-1.0-SNAPSHOT.jar
+```
+
+The default URL for the backend connection is http://localhost:8080. The following command can be used to set the
+backend URL to a different value when starting the frontend:
+
+```
+java -Dowlviewer.backend.url="http://localhost:8090" -jar owlviewer-frontend-1.0-SNAPSHOT.jar
+```
+
+## Run development server
+1. Switch to the root directory of the React frontend (_/src/main/frontend_)
+2. Run the following command:
+   ```
+   npm start
+   ```
+   Now you can open the React frontend in your browser using the following URL:
+   ```
+   http://localhost:3000
+   ```  
+
+**Note**: When running the development server, the URL for the backend connection is set to http://localhost:8080 by 
+default. In case another URL should be used please adjust the file _src/main/frontend/public/index.html_!
+
+## Build the React frontend
+1. Switch to the root directory of the React frontend (_/src/main/frontend_)
+2. Run the following command:
+   ```
+   npm run build
+   ```
+   The build will result in a new bundle.js file that is located in the _/src/main/frontend/dist_ directory.
+   

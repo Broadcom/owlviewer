@@ -1,0 +1,90 @@
+@import "custom";
+
+html, body {
+  height: 100%;
+  font-family: arial w01 regular903292,sans-serif;
+}
+
+.App {
+/*
+  margin: 1rem;
+  font-family: Arial, Helvetica, sans-serif;
+  text-align: center;
+  left: 50%;
+  top: 40%;
+  position: absolute;
+  transform: translate(-50%, -40%);
+*/
+}
+
+.navbar-custom {
+  font-family: hco gotham,sans-serif;
+  color: #cc092f;
+  background-color: #eeeeee;
+  border-bottom: 7px solid #cc092f;
+}
+
+.center-container {
+  position: relative;
+}
+
+.center-element {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+}
+
+.iri {
+  font-size: 0.9rem;
+}
+
+.graph-viewer {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+}
+
+.Pane1 > div {
+  display: inline;
+}
+
+.Pane2 {
+  background-color: #e8e9e9;
+  padding: 16px;
+  overflow-y: scroll;
+  overflow-x: hidden;
+}
+
+.detailsHeader {
+  font-size: 1.75rem;
+  line-height: 1.75rem;
+  margin-bottom: 2rem;
+}
+
+.Resizer.vertical {
+  width: 6px;
+}
+
+.Resizer.vertical:hover {
+  cursor: col-resize;
+  border-left: 3px solid rgba(0, 0, 0, 0.2);
+  border-right: 3px solid rgba(0, 0, 0, 0.2);
+}
+
+.table th, .table td {
+  border-top-color: #b6b6b6;
+}
+
+.table thead th {
+  border-bottom-color: #025c8a;
+}
+
+#graph-id-graph-wrapper {
+  height: 100%;
+}
+
+#svg-container-graph-id {
+  height: 100%;
+}

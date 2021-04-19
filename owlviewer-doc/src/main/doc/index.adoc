@@ -1,0 +1,12 @@
+= OWL Viewer
+Michael Grath
+:toc: left
+:toclevels: 4
+:icons: font
+:source-highlighter: highlight.js
+
+include::configuration.adoc[]
+
+== REST API
+
+include::ontologyrestapi.adoc[]

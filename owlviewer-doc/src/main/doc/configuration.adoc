@@ -1,0 +1,65 @@
+== Run and configure OWL Viewer
+
+=== Backend
+
+The OWL Viewer backend defines the following application-specific configuration properties:
+
+|===
+|Property |Description |Environment variable
+
+|owlviewer.home.directory
+|Location of the OWL Viewer home directory. Unless this property is specified differently, `+%HOMEPATH%/owlviewer+` is
+considered as default.
+|`+OWLVIEWER_HOME+`
+
+|owlviewer.ontologies.directory
+|Location of ontologies (owl-files). Unless this property is specified differently, `+{owlviewer.home.directory}/ontologies+` is
+considered as default.
+|`+OWLVIEWER_ONTOLOGIES_DIR+`
+|===
+
+NOTE: If a directory path configuration is omitted, the default directory hierarchy gets applied and the directories
+relative to the user's home directory or the configured OWL Viewer home directory are created if they don't exist.
+
+Configuration properties can be overwritten when starting the OWL Viewer backend service. How to accomplish that depends on
+the method that was chosen to launch the OWL Viewer backend service.
+
+==== Run the backend with java
+
+Use one or more `+-D+` flags to specify system properties when starting the OWL Viewer backend service using the Java
+application launcher. As an alternative the appropriate environment variable can be set before launching OWL Viewer.
+
+----
+java -jar owlviewer-backend-1.0-SNAPSHOT.jar
+----
+
+==== Run the backend with docker
+
+Use one or more `+-e+` flags to set environment variables when creating a new container based on the `+owlviewer-backend+`
+image with the docker run command.
+
+----
+docker run -d -p 8080:8080 owlviewer-backend:1.0-SNAPSHOT
+----
+
+=== Frontend
+
+The OWL Viewer frontend defines the following application-specific configuration properties:
+
+|===
+|Property |Description |Environment variable
+
+|owlviewer.backend.url
+|URL of the OWL Viewer backend service. Unless this property is specified differently, `+http://localhost:8090+` is
+considered as default.
+|`+OWLVIEWER_BACKEND_URL+`
+|===
+
+==== Run the frontend with java
+
+Use one or more `+-D+` flags to specify system properties when starting the OWL Viewer frontend service using the Java
+application launcher. As an alternative the appropriate environment variable can be set before launching OWL Viewer.
+
+----
+java -Dowlviewer.backend.url="http://localhost:8090" -jar owlviewer-frontend-1.0-SNAPSHOT.jar
+----

@@ -1,0 +1,199 @@
+=== Ontology management
+
+==== Get ontology files
+
+Returns a list of registered ontology files (owl-files) saved in the directory that was configured using the
+`+owlviewer.ontologies.directory+` configuration property.
+
+----
+GET "{server-url}/ontologies" -H "accept: application/json"
+----
+
+==== Upload ontology file
+
+Upload an ontology file (owl-file) to the directory that was configured using the `+owlviewer.ontologies.directory+`
+configuration property.
+
+----
+POST "{server-url}/ontologies"
+----
+
+|===
+|Return code |Message
+
+|400 Bad Request
+|Rejected upload because ontology file "{filename}" already exists
+
+|400 Bad Request
+|Rejected upload of "{filename}" because its file extension does not match "owl"
+|===
+
+==== Download ontology file
+
+Download the specified ontology file (owl-file) saved in the directory that was configured according to the
+`+owlviewer.ontologies.directory+` configuration property.
+
+|===
+|Query parameter |Description
+
+|filename
+|Name of the ontology file to be downloaded
+|===
+
+----
+GET "{server-url}/ontologies/{filename}" -H "accept: application/octet-stream"
+----
+
+==== Delete ontology file
+
+Deletes the specified ontology file (owl-file) saved in the directory that was configured according to the
+`+owlviewer.ontologies.directory+` configuration property.
+
+|===
+|Query parameter |Description
+
+|filename
+|Name of the ontology file to be deleted
+|===
+
+----
+DELETE "{server-url}/ontologies/{filename}" -H "accept: application/json"
+----
+
+==== Get classes
+
+Returns a tree that represents the class hierarchy defined by the loaded ontology.
+
+----
+GET "{server-url}/ontologies/classes" -H  "accept: application/json"
+----
+
+.Sample response for a simple class hierarchy defined by the loaded ontology
+[source,javascript]
+----
+[
+  {
+    "localName": "Ticket",
+    "uri": "http://www.semanticweb.org/micha/ontologies/2021/1/myontology#Ticket",
+    "subClasses": [
+      {
+        "localName": "Userstory",
+        "uri": "http://www.semanticweb.org/micha/ontologies/2021/1/myontology#Userstory",
+        "subClasses": []
+      }
+    ]
+  },
+  {
+    "localName": "Feature",
+    "uri": "http://www.semanticweb.org/micha/ontologies/2021/1/myontology#Feature",
+    "subClasses": []
+  }
+]
+----
+
+==== Get specific class
+
+Returns the specified class that is defined in the loaded ontology as well as its sub classes.
+
+|===
+|Query parameter |Description
+
+|namespace
+|Optional query parameter that can be used to specify the namespace of the requested class of the ontology. If no
+namespace is specified, the default namespace defined in the loaded ontology is used.
+|===
+
+----
+GET "{server-url}/ontologies/classes/{localname}" -H "accept: application/json"
+----
+
+.Sample response for the class "Ticket" defined by the loaded ontology
+[source,javascript]
+----
+{
+  "localName": "Ticket",
+  "uri": "http://www.semanticweb.org/micha/ontologies/2021/1/myontology#Ticket",
+  "subClasses": [
+    {
+      "localName": "Userstory",
+      "uri": "http://www.semanticweb.org/micha/ontologies/2021/1/myontology#Userstory",
+      "subClasses": []
+    }
+  ],
+  "properties": [
+    {
+      "name": "id",
+      "localName": "id",
+      "iri": "http://www.semanticweb.org/micha/ontologies/2021/1/myontology#id",
+      "description": null,
+      "literal": true,
+      "types": [
+        {
+          "minCardinality": 1,
+          "maxCardinality": 1,
+          "name": "integer",
+          "localName": "integer",
+          "iri": "http://www.w3.org/2001/XMLSchema#integer"
+        }
+      ]
+    }
+  ]
+}
+----
+
+Other return codes apart from 200 OK:
+
+|===
+|Return code |Message
+
+|400 Bad Request
+|Could not find class "{uri}" in ontology
+|===
+
+==== Get ontology as graph
+
+Returns the classes defined in the ontology as directed graph. The vertices of the graph represent the classes and
+the edges reflect sub class relationships as well as links between classes defined by class restrictions.
+
+CAUTION: OWL Viewer is based on Apache Jena that doesn't support OWL 2. As a consequence cardinality restrictions are
+not included in the generated graph.
+
+----
+GET "{server-url}/ontologies/graph" -H "accept: application/json"
+----
+
+.Sample response for the graph representation of the loaded ontologies
+[source,javascript]
+----
+{
+  "edges": [
+    {
+      "label": "subClassOf",
+      "id": "http://www.w3.org/2000/01/rdf-schema#subClassOf",
+      "source": "http://www.semanticweb.org/micha/ontologies/2021/1/myontology#Userstory",
+      "target": "http://www.semanticweb.org/micha/ontologies/2021/1/myontology#Ticket"
+    },
+    {
+      "label": "belongs to",
+      "id": "http://www.semanticweb.org/micha/ontologies/2021/1/myontology#belongsTo",
+      "source": "http://www.semanticweb.org/micha/ontologies/2021/1/myontology#Userstory",
+      "target": "http://www.semanticweb.org/micha/ontologies/2021/1/myontology#Feature"
+    }
+  ],
+  "vertices": [
+    {
+      "label": "Userstory",
+      "id": "http://www.semanticweb.org/micha/ontologies/2021/1/myontology#Userstory"
+    },
+    {
+      "label": "Ticket",
+      "id": "http://www.semanticweb.org/micha/ontologies/2021/1/myontology#Ticket"
+    },
+    {
+      "label": "Feature",
+      "id": "http://www.semanticweb.org/micha/ontologies/2021/1/myontology#Feature"
+    }
+  ]
+}
+----
+
