@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import { hot } from "react-hot-loader";
 import { Navbar, Nav } from 'react-bootstrap';
 import { Link } from "react-router-dom";
-import logo from "../public/images/itmatters.png";
+import logo from "../public/images/broadcom.png";
 
 class Navigation extends Component {
   render() {
