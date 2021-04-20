@@ -10,11 +10,9 @@ Use Maven to build the application and create a fat jar-file:
 mvn clean package
 ```
 ### Build docker image
-Use maven and spring boot buildpacks to create a docker image that gets pushed to the docker registry that is 
-configured in the project's pom-file. The password for the registry needs to be passed to the Maven property 
-_registry.password_.
+Use maven and spring boot to create a docker image:
 ```
-mvn spring-boot:build-image -Dregistry.password={Password}
+mvn spring-boot:build-image
 ```
 ## Run
 
@@ -24,7 +22,7 @@ java -jar target/owlviewer-backend-1.0-SNAPSHOT.jar
 ```
 ### Run docker container
 ```
-docker run -d -p 8080:8080 -e owlviewer-backend:1.0-SNAPSHOT
+docker run -d -p 8080:8080 owlviewer-backend:1.0-SNAPSHOT
 ```
 ## REST API documentation
 Please use this link to view the documentation of the provided REST API after building and

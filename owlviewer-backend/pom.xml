@@ -55,8 +55,9 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<version>${spring.version}</version>
+				<!-- Configuration for pushing the created image to a docker registry -->
+				<!--
 				<configuration>
-					<!-- Configuration for image creation -->
 					<image>
 						<name>${registry.url}</name>
 						<publish>true</publish>
@@ -72,6 +73,7 @@
 						</publishRegistry>
 					</docker>
 				</configuration>
+				-->
 				<!-- Needed because spring-boot-starter-parent was not defined as parent pom -->
 				<executions>
 					<execution>
