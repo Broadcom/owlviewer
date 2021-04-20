@@ -1,7 +1,7 @@
 # OWL Viewer
 
 OWL Viewer creates a graph representation of provided OWL ontologies. Named OWL classes are mapped to nodes  whereas a 
-property's domain and range as well as property restriction on classes are mapped to edges. By clicking on a node in the
+property's domain and range as well as property restrictions on classes are mapped to edges. Clicking on a node in the
 generated graph displays the associated properties in a detail pane.
 
 ## Modules
