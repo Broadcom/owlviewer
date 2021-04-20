@@ -23,7 +23,7 @@ mvn spring-boot:build-image
 ### Run application
 Use the following command to start the application:
 ```
-java -jar owlviewer-frontend-1.0-SNAPSHOT.jar
+java -Dserver.port="8081" -jar owlviewer-frontend/target/owlviewer-frontend-1.0-SNAPSHOT.jar
 ```
 
 The default URL for the backend connection is http://localhost:8080. The following command can be used to set the
