@@ -5,6 +5,22 @@ html, body {
   font-family: arial w01 regular903292,sans-serif;
 }
 
+.viewport-button:hover {
+  background-color: #eeeeee;
+}
+
+.viewport-button:focus {
+  box-shadow: none;
+}
+
+.viewport-button {
+  font-size: 1rem;
+  margin-top: 5px;
+  border-color: black;
+  background-color: white;
+  white-space: nowrap;
+}
+
 .navbar-custom {
   font-family: hco gotham,sans-serif;
   color: #cc092f;

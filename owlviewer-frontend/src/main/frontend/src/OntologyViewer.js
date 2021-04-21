@@ -3,7 +3,7 @@ import { ReactCytoscape } from "react-cytoscape";
 import SplitPane from "react-split-pane";
 import { hot } from "react-hot-loader";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faImage } from "@fortawesome/free-regular-svg-icons";
+import { faImage, faExpand } from "@fortawesome/free-solid-svg-icons";
 import ClassPropertiesTable from "./ClassPropertiesTable.js";
 import axios from "axios";
 
@@ -50,6 +50,7 @@ class OntologyViewer extends Component {
     this.onClickNode = this.onClickNode.bind(this);
     this.selectNode = this.selectNode.bind(this);
     this.downloadGraph = this.downloadGraph.bind(this);
+    this.adaptToViewport = this.adaptToViewport.bind(this);
     this.panelWidth = 506;
   }
 
@@ -181,6 +182,11 @@ class OntologyViewer extends Component {
     anchor.click();
   }
 
+  adaptToViewport() {
+    console.log("adapt!");
+    this.cy.fit();
+  }
+
   cyRef(cy) {
     this.cy = cy;
     cy.on('click', 'node', (evt) => this.onClickNode(evt));
@@ -216,10 +222,14 @@ class OntologyViewer extends Component {
               style={this.getStyle()}
               layout={{name: 'dagre'}} />
 
-            <button type="button" onClick={this.downloadGraph}
-                style={{position: "absolute", bottom: 20, left: 20, fontSize: "1rem", borderColor: "black", backgroundColor: "white", whiteSpace: "nowrap"}} className="btn btn-default btn-sm">
-              <FontAwesomeIcon icon={faImage}/>  Download as PNG
-            </button>
+            <div style={{position: "absolute", bottom: 20, left: 20}}>
+              <button type="button" className="viewport-button btn btn-default btn-sm" onClick={this.downloadGraph} style={{marginRight: 5}}>
+                <FontAwesomeIcon icon={faImage} style={{marginRight: "10px"}}/>Download as PNG
+              </button>
+              <button type="button" className="viewport-button btn btn-default btn-sm" onClick={this.adaptToViewport}>
+                <FontAwesomeIcon icon={faExpand} style={{marginRight: "10px"}}/>Adapt to viewport
+              </button>
+            </div>
 
            </div>
            <div>
