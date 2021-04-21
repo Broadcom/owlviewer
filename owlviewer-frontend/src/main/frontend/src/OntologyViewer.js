@@ -105,7 +105,7 @@ class OntologyViewer extends Component {
       {
 	    selector: 'node',
 	    css: {
-          "content": function (ele) { return ele.data('label') || ele.data('id') },
+          "content": function (ele) { return ele.data("label") || ele.data("uri") },
           "font-size": "10",
           "width": "20",
           "height": "20",
@@ -117,7 +117,7 @@ class OntologyViewer extends Component {
       {
 	    selector: 'node.selected',
 	    css: {
-          "content": function (ele) { return ele.data('label') || ele.data('uri') },
+          "content": function (ele) { return ele.data("label") || ele.data("uri") },
           "font-size": "10",
           "width": "20",
           "height": "20",
@@ -129,11 +129,13 @@ class OntologyViewer extends Component {
       {
         selector: 'edge',
         css: {
-          "label": function (ele) { return ele.data('label') || ele.data('id') },
-          "font-size": "10px",
+          "label": function (ele) { return ele.data("label") || ele.data("uri") },
+          "font-size": "8px",
           "width": "1",
+          "line-style": function (ele) { return ele.data("uri") === "http://www.w3.org/2000/01/rdf-schema#subClassOf" ? "dashed" : "solid" },
           "curve-style": "bezier",
-          "target-arrow-shape": "triangle"
+          "target-arrow-shape": "triangle",
+          "target-arrow-fill": function (ele) { return ele.data("uri") === "http://www.w3.org/2000/01/rdf-schema#subClassOf" ? "hollow" : "filled" },
         }
       },
       {

@@ -53,9 +53,12 @@ java -Dserver.port="8081" -jar owlviewer-frontend/target/owlviewer-frontend-1.0-
 
 ### Run docker container
 
-Run the backend container:
+Run the backend container and mount directory that contains the owl-files (Please replace "_//c//Users/michael/owlviewer/ontologies_"
+with the path to the owl-files on your local system):
 ```
-docker run -d -p 8080:8080 owlviewer-backend:1.0-SNAPSHOT
+docker run -d -p 8090:8080 \
+    -v //c//Users/michael/owlviewer/ontologies:/home/cnb/owlviewer/ontologies \
+    owlviewer-backend:1.0-SNAPSHOT
 ```
 
 Run the frontend container:

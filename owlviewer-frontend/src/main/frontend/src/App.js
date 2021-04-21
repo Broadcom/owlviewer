@@ -1,7 +1,6 @@
 import React, { Component } from "react";
 import { hot } from "react-hot-loader";
 import "./App.scss";
-import Upload from "./Upload.js";
 import OntologyViewer from "./OntologyViewer.js";
 import Navigation from "./Navigation.js";
 import { Container, Row, Col } from "react-bootstrap";
