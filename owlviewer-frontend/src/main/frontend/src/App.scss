@@ -56,7 +56,7 @@ html, body {
 
 .Pane2 {
   background-color: #e8e9e9;
-  padding: 16px;
+  padding: 25px;
   overflow-y: scroll;
   overflow-x: hidden;
 }
@@ -79,10 +79,16 @@ html, body {
 
 .table th, .table td {
   border-top-color: #b6b6b6;
+  padding: 3px;
 }
 
 .table thead th {
   border-bottom-color: #025c8a;
+}
+
+.table td.reset-expansion-style {
+  background-color: #eeeeee;
+  padding-top: 1rem;
 }
 
 #graph-id-graph-wrapper {
