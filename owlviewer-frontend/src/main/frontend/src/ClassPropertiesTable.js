@@ -131,7 +131,9 @@ class ClassPropertiesTable extends React.Component {
       renderer: row => (
         <div>
           <p><b>Internationalised Resource Identifier (IRI):</b><br/>{row.iri}</p>
-          { row.description != null ? <p><b>Description:</b><br/>{row.description}</p> : "" }
+          { row.description != null ? (<p><b>Description:</b><br/>{row.description}{row.additionalDescription != null ? (row.additionalDescription.length == 1 ? <p>{row.additionalDescription[0]}</p>: <ul>{row.additionalDescription.map((desc) => (<li>{desc}</li>))}</ul>) : ""}</p>) :
+              (row.additionalDescription != null ? (row.additionalDescription.length == 1 ? <p><b>Description:</b><br/>{row.additionalDescription[0]}</p> : <p><b>Description:</b><br/><ul>{row.additionalDescription.map((desc) => (<li>{desc}</li>))}</ul></p>) : "") }
+
         </div>
       ),
       showExpandColumn: true,

@@ -16,6 +16,7 @@ public abstract class Property implements IProperty {
     private String localName;
     private String iri;
     private String description;
+    private Set<String> additionalDescriptions;
     private Set<ITypeInfo> typeInfos;
     private boolean literal;
 
@@ -57,6 +58,26 @@ public abstract class Property implements IProperty {
     @Override
     public String getDescription() {
         return description;
+    }
+
+    @Override
+    public void setAdditionalDescription(Set<String> additionalDescriptions) {
+        this.additionalDescriptions = additionalDescriptions;
+    }
+
+    @Override
+    public void addAdditionalDescription(String additionalDescription) {
+        if (additionalDescription != null) {
+            if (additionalDescriptions == null) {
+                additionalDescriptions = new HashSet<>();
+            }
+            additionalDescriptions.add(additionalDescription);
+        }
+    }
+
+    @Override
+    public Set<String> getAdditionalDescription() {
+        return additionalDescriptions;
     }
 
     @Override

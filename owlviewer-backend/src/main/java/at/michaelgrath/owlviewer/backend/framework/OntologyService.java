@@ -10,14 +10,16 @@ import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntResource;
 import org.apache.jena.query.*;
 import org.semanticweb.owlapi.model.*;
+import org.semanticweb.owlapi.search.EntitySearcher;
+import org.semanticweb.owlapi.vocab.OWLRDFVocabulary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.annotation.Nonnull;
 import javax.annotation.PostConstruct;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -27,12 +29,27 @@ import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static org.apache.jena.vocabulary.OWL2.AnnotationProperty;
+
 @Service
 public class OntologyService {
 
     private static final String OWL = ".owl";
 
     private static final Logger LOG = LoggerFactory.getLogger(OntologyService.class);
+
+    private static final String RDF_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
+    private static final String OWL_AXIOM = "http://www.w3.org/2002/07/owl#Axiom";
+    private static final String OWL_ANNOTATION_TARGET = "http://www.w3.org/2002/07/owl#annotatedTarget";
+    private static final String OWL_ANNOTATION_PROPERTY = "http://www.w3.org/2002/07/owl#annotatedProperty";
+    private static final String OWL_ANNOTATION_SOURCE = "http://www.w3.org/2002/07/owl#annotatedSource";
+    private static final String RDFS_SUBCLASSOF = "http://www.w3.org/2000/01/rdf-schema#subClassOf";
+    private static final String OWL_ONPROPERTY = "http://www.w3.org/2002/07/owl#onProperty";
+    private static final String OWL_SOMEVALUESFROM = "http://www.w3.org/2002/07/owl#someValuesFrom";
+    private static final String OWL_ALLVALUESFROM= "http://www.w3.org/2002/07/owl#allValuesFrom";
+    private static final String OWL_QUALIFIEDCARDINALITY = "http://www.w3.org/2002/07/owl#qualifiedCardinality";
+    private static final String OWL_MINCARDINALITY = "http://www.w3.org/2002/07/owl#minQualifiedCardinality";
+    private static final String OWL_MAXCARDINALITY = "http://www.w3.org/2002/07/owl#maxQualifiedCardinality";
 
     private Ontology ontology;
     private OntologyModel ontologyModel;
@@ -166,41 +183,87 @@ public class OntologyService {
                 .forEach(ontClass -> {
                     // map all object properties that define the current class as their domain to edges
                     ontologyModel.listAllOntProperties()
-                        .filterKeep(property -> property.hasDomain(ontClass))
-                        .forEach(property ->
-                            property.listRange().forEach(domain -> edges.add(new GraphEdge(
-                                    property.getURI(),
-                                    ontClass.getURI(),
-                                    domain.getURI(),
-                                    getLabel(property))))
-                        );
+                            .filterKeep(property -> property.hasDomain(ontClass))
+                            .forEach(property ->
+                                    property.listRange().forEach(domain -> edges.add(new GraphEdge(
+                                            property.getURI(),
+                                            ontClass.getURI(),
+                                            domain.getURI(),
+                                            getLabel(property))))
+                            );
                     // map superClass relationships to edges
                     if (ontClass.hasSuperClass()) {
                         ontClass.listSuperClasses()
-                            .filterKeep(superClass -> superClass.getURI() != null)
-                            .forEach(superClass -> edges.add(new GraphEdge(
-                                    "http://www.w3.org/2000/01/rdf-schema#subClassOf",
-                                    ontClass.getURI(),
-                                    superClass.getURI(),
-                                    "subClassOf")));
+                                .filterKeep(superClass -> superClass.getURI() != null)
+                                .forEach(superClass -> edges.add(new GraphEdge(
+                                        "http://www.w3.org/2000/01/rdf-schema#subClassOf",
+                                        ontClass.getURI(),
+                                        superClass.getURI(),
+                                        "subClassOf")));
                     }
                     // Map class restrictions to edges
                     vertices.add(new GraphVertice(ontClass.getURI(), getLabel(ontClass)));
                     Set<IProperty> properties = getClassRestrictions(ontClass.getURI(), Properties.OBJECTPROPERTIES);
                     properties
-                        .forEach(property -> property.getTypeInfos()
-                            .forEach(typeInfo ->
-                                edges.add(new GraphEdge(
-                                        property.getIRI(),
-                                        ontClass.getURI(),
-                                        typeInfo.getIRI(),
-                                        getLabel(ontologyModel.getOntResource(property.getIRI()))))
-                            )
-                        );
+                            .forEach(property -> property.getTypeInfos()
+                                    .forEach(typeInfo ->
+                                            edges.add(new GraphEdge(
+                                                    property.getIRI(),
+                                                    ontClass.getURI(),
+                                                    typeInfo.getIRI(),
+                                                    getLabel(ontologyModel.getOntResource(property.getIRI()))))
+                                    )
+                            );
                 });
         graph.setVertices(vertices);
         graph.setEdges(edges);
         return graph;
+    }
+
+    private String getRestrictionAnnotation(OWLRestriction restriction, String onClassIRI, String onPropertyIRI) {
+        String restrictionPredicate = getRestrictionPredicate(restriction);
+        if (restrictionPredicate != null && onClassIRI != null && onPropertyIRI != null) {
+            String sparqlQueryString = "SELECT ?annotation WHERE {\n" +
+                    "?annotationAxiom <http://www.w3.org/2000/01/rdf-schema#label> ?annotation .\n" +
+                    "?annotationAxiom <http://www.w3.org/2002/07/owl#annotatedTarget> ?restrictionAxiom .\n" +
+                    "?annotationAxiom <http://www.w3.org/2002/07/owl#annotatedProperty> <http://www.w3.org/2000/01/rdf-schema#subClassOf> .\n" +
+                    "?annotationAxiom <http://www.w3.org/2002/07/owl#annotatedSource> <" + onClassIRI + "> .\n" +
+                    "?annotationAxiom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Axiom> .\n" +
+                    "?restrictionAxiom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Restriction> .\n" +
+                    "?restrictionAxiom <http://www.w3.org/2002/07/owl#onProperty> <" + onPropertyIRI + ">.\n" +
+                    "?restrictionAxiom <" + restrictionPredicate + "> ?cardinality .\n" +
+                    "}";
+            Query query = QueryFactory.create(sparqlQueryString);
+            QueryExecution queryExec = QueryExecutionFactory.create(query, ontologyModel);
+            ResultSet results = queryExec.execSelect();
+            while (results.hasNext()) {
+                QuerySolution solution = results.nextSolution();
+                // Always only return the first result
+                return solution.get("annotation").asLiteral().getString();
+            }
+            queryExec.close();
+        }
+        return null;
+    }
+
+    private String getRestrictionPredicate(OWLRestriction restriction) {
+        if (restriction == null) return null;
+        if (OWLDataMaxCardinality.class.isAssignableFrom(restriction.getClass()) || OWLObjectMaxCardinality.class.isAssignableFrom(restriction.getClass())) {
+            return OWL_MAXCARDINALITY;
+        }
+        else if (OWLDataMinCardinality.class.isAssignableFrom(restriction.getClass()) || OWLObjectMinCardinality.class.isAssignableFrom(restriction.getClass())) {
+            return OWL_MINCARDINALITY;
+        }
+        else if (OWLCardinalityRestriction.class.isAssignableFrom(restriction.getClass())) {
+            return OWL_QUALIFIEDCARDINALITY;
+        }
+        else if (OWLDataSomeValuesFrom.class.isAssignableFrom(restriction.getClass()) || OWLObjectSomeValuesFrom.class.isAssignableFrom(restriction.getClass())) {
+            return OWL_SOMEVALUESFROM;
+        }
+        else if (OWLDataAllValuesFrom.class.isAssignableFrom(restriction.getClass()) || OWLObjectAllValuesFrom.class.isAssignableFrom(restriction.getClass())) {
+            return OWL_ALLVALUESFROM;
+        }
+        return null;
     }
 
     public List<OntologyClass> getSubClasses(OntClass parentClass) {
@@ -248,185 +311,194 @@ public class OntologyService {
         ontology.classesInSignature()
                 .filter(owlClass -> owlClass.getIRI().toString().equals(classIRI))
                 .forEach(owlClass -> {
-                    ontology.subClassAxiomsForSubClass(owlClass).forEach(subClassOfAxiom ->
-                            subClassOfAxiom.getSuperClass().accept(new OWLObjectVisitor() {
+                    ontology.subClassAxiomsForSubClass(owlClass).forEach(subClassOfAxiom -> {
+                        subClassOfAxiom.getSuperClass().accept(new OWLObjectVisitor() {
 
-                        @Override
-                        public void visit(OWLDataExactCardinality ce) {
-                            applyCardinalityRestriction(ce);
-                        }
-
-                        @Override
-                        public void visit(OWLDataMinCardinality ce) {
-                            applyCardinalityRestriction(ce);
-                        }
-
-                        @Override
-                        public void visit(OWLDataMaxCardinality ce) {
-                            applyCardinalityRestriction(ce);
-                        }
-
-                        @Override
-                        public void visit(OWLDataSomeValuesFrom ce) {
-                            applyQuantifiedRestriction(ce, ce.getFiller().asOWLDatatype().getIRI().toString());
-                        }
-
-                        @Override
-                        public void visit(OWLDataAllValuesFrom ce) {
-                            applyQuantifiedRestriction(ce, ce.getFiller().asOWLDatatype().getIRI().toString());
-                        }
-
-                        @Override
-                        public void visit(OWLObjectExactCardinality ce) {
-                            applyCardinalityRestriction(ce);
-                        }
-
-                        @Override
-                        public void visit(OWLObjectMinCardinality ce) {
-                            applyCardinalityRestriction(ce);
-                        }
-
-                        @Override
-                        public void visit(OWLObjectMaxCardinality ce) {
-                            applyCardinalityRestriction(ce);
-                        }
-
-                        @Override
-                        public void visit(OWLObjectSomeValuesFrom ce) {
-                            applyQuantifiedRestriction(ce, ce.getFiller().asOWLClass().getIRI().toString());
-                        }
-
-                        @Override
-                        public void visit(OWLObjectAllValuesFrom ce) {
-                            applyQuantifiedRestriction(ce, ce.getFiller().asOWLClass().getIRI().toString());
-                        }
-
-                        private void applyQuantifiedRestriction(OWLQuantifiedRestriction<?> ce, String fillerIRI) {
-                            if (createPropertyIfNotExists(ce) && getIRIFromRestriction(ce) != null) {
-                                IProperty property = properties.get(getIRIFromRestriction(ce).toString());
-                                if (property != null && ce.getFiller().isNamed()) {
-                                    if (OWLObjectSomeValuesFrom.class.isAssignableFrom(ce.getClass()) ||
-                                            OWLDataSomeValuesFrom.class.isAssignableFrom(ce.getClass())) {
-                                        property.mergeTypeInfo(new TypeInfo(
-                                                getLabel(ontologyModel.getOntResource(fillerIRI)),
-                                                ontologyModel.getOntResource(fillerIRI).getLocalName(),
-                                                fillerIRI,
-                                                1,
-                                                null));
-                                    }
-                                    else if (OWLObjectAllValuesFrom.class.isAssignableFrom(ce.getClass()) ||
-                                            OWLDataAllValuesFrom.class.isAssignableFrom(ce.getClass())) {
-                                        property.mergeTypeInfo(new TypeInfo(
-                                                getLabel(ontologyModel.getOntResource(fillerIRI)),
-                                                ontologyModel.getOntResource(fillerIRI).getLocalName(),
-                                                fillerIRI,
-                                                null,
-                                                null));
-                                    }
-                                }
+                            @Override
+                            public void visit(OWLDataExactCardinality ce) {
+                                applyCardinalityRestriction(ce);
                             }
-                        }
 
-                        private void applyCardinalityRestriction(OWLCardinalityRestriction<?> ce) {
-                            if (createPropertyIfNotExists(ce) && getIRIFromRestriction(ce) != null) {
-                                IProperty property = properties.get(getIRIFromRestriction(ce).toString());
-                                if (property != null && ce.getFiller().isNamed()) {
-                                    if (OWLObjectCardinalityRestriction.class.isAssignableFrom(ce.getClass())) {
-                                        String fillerIRI = ((OWLObjectCardinalityRestriction) ce).getFiller().asOWLClass().getIRI().toString();
-                                        if (OWLObjectMinCardinality.class.isAssignableFrom(ce.getClass())) {
+                            @Override
+                            public void visit(OWLDataMinCardinality ce) {
+                                applyCardinalityRestriction(ce);
+                            }
+
+                            @Override
+                            public void visit(OWLDataMaxCardinality ce) {
+                                applyCardinalityRestriction(ce);
+                            }
+
+                            @Override
+                            public void visit(OWLDataSomeValuesFrom ce) {
+                                applyQuantifiedRestriction(ce, ce.getFiller().asOWLDatatype().getIRI().toString());
+                            }
+
+                            @Override
+                            public void visit(OWLDataAllValuesFrom ce) {
+                                applyQuantifiedRestriction(ce, ce.getFiller().asOWLDatatype().getIRI().toString());
+                            }
+
+                            @Override
+                            public void visit(OWLObjectExactCardinality ce) {
+                                applyCardinalityRestriction(ce);
+                            }
+
+                            @Override
+                            public void visit(OWLObjectMinCardinality ce) {
+                                applyCardinalityRestriction(ce);
+                            }
+
+                            @Override
+                            public void visit(OWLObjectMaxCardinality ce) {
+                                applyCardinalityRestriction(ce);
+                            }
+
+                            @Override
+                            public void visit(OWLObjectSomeValuesFrom ce) {
+                                applyQuantifiedRestriction(ce, ce.getFiller().asOWLClass().getIRI().toString());
+                            }
+
+                            @Override
+                            public void visit(OWLObjectAllValuesFrom ce) {
+                                applyQuantifiedRestriction(ce, ce.getFiller().asOWLClass().getIRI().toString());
+                            }
+
+                            private void applyQuantifiedRestriction(OWLQuantifiedRestriction<?> ce, String fillerIRI) {
+                                if (createPropertyIfNotExists(ce) && getIRIFromRestriction(ce) != null) {
+                                    IProperty property = properties.get(getIRIFromRestriction(ce).toString());
+                                    if (property != null && ce.getFiller().isNamed()) {
+                                        String annotation = getRestrictionAnnotation(ce, owlClass.getIRI().toString(), property.getIRI().toString());
+                                        if (annotation != null) {
+                                            property.addAdditionalDescription(annotation);
+                                        }
+                                        if (OWLObjectSomeValuesFrom.class.isAssignableFrom(ce.getClass()) ||
+                                                OWLDataSomeValuesFrom.class.isAssignableFrom(ce.getClass())) {
                                             property.mergeTypeInfo(new TypeInfo(
                                                     getLabel(ontologyModel.getOntResource(fillerIRI)),
                                                     ontologyModel.getOntResource(fillerIRI).getLocalName(),
                                                     fillerIRI,
-                                                    ce.getCardinality(),
+                                                    1,
                                                     null));
                                         }
-                                        else if (OWLObjectMaxCardinality.class.isAssignableFrom(ce.getClass())) {
+                                        else if (OWLObjectAllValuesFrom.class.isAssignableFrom(ce.getClass()) ||
+                                                OWLDataAllValuesFrom.class.isAssignableFrom(ce.getClass())) {
                                             property.mergeTypeInfo(new TypeInfo(
                                                     getLabel(ontologyModel.getOntResource(fillerIRI)),
                                                     ontologyModel.getOntResource(fillerIRI).getLocalName(),
                                                     fillerIRI,
                                                     null,
-                                                    ce.getCardinality()));
-                                        }
-                                        else if (OWLObjectExactCardinality.class.isAssignableFrom(ce.getClass())) {
-                                            property.mergeTypeInfo(new TypeInfo(
-                                                    getLabel(ontologyModel.getOntResource(fillerIRI)),
-                                                    ontologyModel.getOntResource(fillerIRI).getLocalName(),
-                                                    fillerIRI,
-                                                    ce.getCardinality(),
-                                                    ce.getCardinality()));
-                                        }
-                                    }
-                                    else if (OWLDataCardinalityRestriction.class.isAssignableFrom(ce.getClass())) {
-                                        String fillerIRI = ((OWLDataCardinalityRestriction) ce).getFiller().asOWLDatatype().getIRI().toString();
-                                        if (OWLDataMinCardinality.class.isAssignableFrom(ce.getClass())) {
-                                            property.mergeTypeInfo(new TypeInfo(
-                                                    getLabel(ontologyModel.getOntResource(fillerIRI)),
-                                                    ontologyModel.getOntResource(fillerIRI).getLocalName(),
-                                                    fillerIRI,
-                                                    ce.getCardinality(),
                                                     null));
                                         }
-                                        else if (OWLDataMaxCardinality.class.isAssignableFrom(ce.getClass())) {
-                                            property.mergeTypeInfo(new TypeInfo(
-                                                    getLabel(ontologyModel.getOntResource(fillerIRI)),
-                                                    ontologyModel.getOntResource(fillerIRI).getLocalName(),
-                                                    fillerIRI,
-                                                    null,
-                                                    ce.getCardinality()));
+                                    }
+                                }
+                            }
+
+                            private void applyCardinalityRestriction(OWLCardinalityRestriction<?> ce) {
+                                if (createPropertyIfNotExists(ce) && getIRIFromRestriction(ce) != null) {
+                                    IProperty property = properties.get(getIRIFromRestriction(ce).toString());
+                                    if (property != null && ce.getFiller().isNamed()) {
+                                        String annotation = getRestrictionAnnotation(ce, owlClass.getIRI().toString(), property.getIRI().toString());
+                                        if (annotation != null) {
+                                            property.addAdditionalDescription(annotation);
                                         }
-                                        else if (OWLDataExactCardinality.class.isAssignableFrom(ce.getClass())) {
-                                            property.mergeTypeInfo(new TypeInfo(
-                                                    getLabel(ontologyModel.getOntResource(fillerIRI)),
-                                                    ontologyModel.getOntResource(fillerIRI).getLocalName(),
-                                                    fillerIRI,
-                                                    ce.getCardinality(),
-                                                    ce.getCardinality()));
+                                        if (OWLObjectCardinalityRestriction.class.isAssignableFrom(ce.getClass())) {
+                                            String fillerIRI = ((OWLObjectCardinalityRestriction) ce).getFiller().asOWLClass().getIRI().toString();
+                                            if (OWLObjectMinCardinality.class.isAssignableFrom(ce.getClass())) {
+                                                property.mergeTypeInfo(new TypeInfo(
+                                                        getLabel(ontologyModel.getOntResource(fillerIRI)),
+                                                        ontologyModel.getOntResource(fillerIRI).getLocalName(),
+                                                        fillerIRI,
+                                                        ce.getCardinality(),
+                                                        null));
+                                            }
+                                            else if (OWLObjectMaxCardinality.class.isAssignableFrom(ce.getClass())) {
+                                                property.mergeTypeInfo(new TypeInfo(
+                                                        getLabel(ontologyModel.getOntResource(fillerIRI)),
+                                                        ontologyModel.getOntResource(fillerIRI).getLocalName(),
+                                                        fillerIRI,
+                                                        null,
+                                                        ce.getCardinality()));
+                                            }
+                                            else if (OWLObjectExactCardinality.class.isAssignableFrom(ce.getClass())) {
+                                                property.mergeTypeInfo(new TypeInfo(
+                                                        getLabel(ontologyModel.getOntResource(fillerIRI)),
+                                                        ontologyModel.getOntResource(fillerIRI).getLocalName(),
+                                                        fillerIRI,
+                                                        ce.getCardinality(),
+                                                        ce.getCardinality()));
+                                            }
+                                        }
+                                        else if (OWLDataCardinalityRestriction.class.isAssignableFrom(ce.getClass())) {
+                                            String fillerIRI = ((OWLDataCardinalityRestriction) ce).getFiller().asOWLDatatype().getIRI().toString();
+                                            if (OWLDataMinCardinality.class.isAssignableFrom(ce.getClass())) {
+                                                property.mergeTypeInfo(new TypeInfo(
+                                                        getLabel(ontologyModel.getOntResource(fillerIRI)),
+                                                        ontologyModel.getOntResource(fillerIRI).getLocalName(),
+                                                        fillerIRI,
+                                                        ce.getCardinality(),
+                                                        null));
+                                            }
+                                            else if (OWLDataMaxCardinality.class.isAssignableFrom(ce.getClass())) {
+                                                property.mergeTypeInfo(new TypeInfo(
+                                                        getLabel(ontologyModel.getOntResource(fillerIRI)),
+                                                        ontologyModel.getOntResource(fillerIRI).getLocalName(),
+                                                        fillerIRI,
+                                                        null,
+                                                        ce.getCardinality()));
+                                            }
+                                            else if (OWLDataExactCardinality.class.isAssignableFrom(ce.getClass())) {
+                                                property.mergeTypeInfo(new TypeInfo(
+                                                        getLabel(ontologyModel.getOntResource(fillerIRI)),
+                                                        ontologyModel.getOntResource(fillerIRI).getLocalName(),
+                                                        fillerIRI,
+                                                        ce.getCardinality(),
+                                                        ce.getCardinality()));
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
 
-                        private boolean createPropertyIfNotExists(OWLRestriction cr) {
-                            IRI iri = getIRIFromRestriction(cr);
-                            if (iri != null && !properties.containsKey(iri.toString())) {
-                                if ((propertiesFilter.equals(Properties.DATAPROPERTIES) ||
-                                        propertiesFilter.equals(Properties.ALL)) && cr.isDataRestriction()) {
-                                    properties.put(iri.toString(),
-                                            new DataProperty(
-                                                    getLabel(ontologyModel.getOntResource(iri.toString())),
-                                                    iri.getFragment(),
-                                                    iri.toString(),
-                                                    getDescription(ontologyModel.getOntResource(iri.toString()))));
-                                    return true;
+                            private boolean createPropertyIfNotExists(OWLRestriction cr) {
+                                IRI iri = getIRIFromRestriction(cr);
+                                if (iri != null && !properties.containsKey(iri.toString())) {
+                                    if ((propertiesFilter.equals(Properties.DATAPROPERTIES) ||
+                                            propertiesFilter.equals(Properties.ALL)) && cr.isDataRestriction()) {
+                                        properties.put(iri.toString(),
+                                                new DataProperty(
+                                                        getLabel(ontologyModel.getOntResource(iri.toString())),
+                                                        iri.getFragment(),
+                                                        iri.toString(),
+                                                        getDescription(ontologyModel.getOntResource(iri.toString()))));
+                                        return true;
+                                    }
+                                    if ((propertiesFilter.equals(Properties.OBJECTPROPERTIES) ||
+                                            propertiesFilter.equals(Properties.ALL)) && cr.isObjectRestriction()) {
+                                        properties.put(iri.toString(),
+                                                new ObjectProperty(
+                                                        getLabel(ontologyModel.getOntResource(iri.toString())),
+                                                        iri.getFragment(),
+                                                        iri.toString(),
+                                                        getDescription(ontologyModel.getOntResource(iri.toString()))));
+                                        return true;
+                                    }
+                                    return false;
                                 }
-                                if ((propertiesFilter.equals(Properties.OBJECTPROPERTIES) ||
-                                        propertiesFilter.equals(Properties.ALL)) && cr.isObjectRestriction()) {
-                                    properties.put(iri.toString(),
-                                            new ObjectProperty(
-                                                    getLabel(ontologyModel.getOntResource(iri.toString())),
-                                                    iri.getFragment(),
-                                                    iri.toString(),
-                                                    getDescription(ontologyModel.getOntResource(iri.toString()))));
-                                    return true;
-                                }
-                                return false;
+                                return true;
                             }
-                            return true;
-                        }
 
-                        private IRI getIRIFromRestriction(OWLRestriction cr) {
-                            if (cr.isDataRestriction()) {
-                                return cr.getProperty().asOWLDataProperty().getIRI();
+                            private IRI getIRIFromRestriction(OWLRestriction cr) {
+                                if (cr.isDataRestriction()) {
+                                    return cr.getProperty().asOWLDataProperty().getIRI();
+                                }
+                                else if (cr.isObjectRestriction()) {
+                                    return cr.getProperty().asOWLObjectProperty().getIRI();
+                                }
+                                return null;
                             }
-                            else if (cr.isObjectRestriction()) {
-                                return cr.getProperty().asOWLObjectProperty().getIRI();
-                            }
-                            return null;
-                        }
-                    }));
+                        });
+                    });
                 });
         return new HashSet<>(properties.values());
     }

@@ -24,6 +24,12 @@ public interface IProperty {
 
     String getDescription();
 
+    void setAdditionalDescription(Set<String> additionalDescriptions);
+
+    void addAdditionalDescription(String additionalDescription);
+
+    Set<String> getAdditionalDescription();
+
     void setTypeInfos(Set<ITypeInfo> fillers);
 
     Set<ITypeInfo> getTypeInfos();
