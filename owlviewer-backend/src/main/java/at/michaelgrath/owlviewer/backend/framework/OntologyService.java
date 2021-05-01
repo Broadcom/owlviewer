@@ -38,18 +38,20 @@ public class OntologyService {
 
     private static final Logger LOG = LoggerFactory.getLogger(OntologyService.class);
 
-    private static final String RDF_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
-    private static final String OWL_AXIOM = "http://www.w3.org/2002/07/owl#Axiom";
-    private static final String OWL_ANNOTATION_TARGET = "http://www.w3.org/2002/07/owl#annotatedTarget";
-    private static final String OWL_ANNOTATION_PROPERTY = "http://www.w3.org/2002/07/owl#annotatedProperty";
-    private static final String OWL_ANNOTATION_SOURCE = "http://www.w3.org/2002/07/owl#annotatedSource";
-    private static final String RDFS_SUBCLASSOF = "http://www.w3.org/2000/01/rdf-schema#subClassOf";
-    private static final String OWL_ONPROPERTY = "http://www.w3.org/2002/07/owl#onProperty";
-    private static final String OWL_SOMEVALUESFROM = "http://www.w3.org/2002/07/owl#someValuesFrom";
-    private static final String OWL_ALLVALUESFROM= "http://www.w3.org/2002/07/owl#allValuesFrom";
+    private static final String RDF_TYPE                 = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
+    private static final String OWL_AXIOM                = "http://www.w3.org/2002/07/owl#Axiom";
+    private static final String OWL_ANNOTATED_TARGET     = "http://www.w3.org/2002/07/owl#annotatedTarget";
+    private static final String OWL_ANNOTATED_PROPERTY   = "http://www.w3.org/2002/07/owl#annotatedProperty";
+    private static final String OWL_ANNOTATED_SOURCE     = "http://www.w3.org/2002/07/owl#annotatedSource";
+    private static final String OWL_RESTRICTION          = "http://www.w3.org/2002/07/owl#Restriction";
+    private static final String RDFS_SUBCLASSOF          = "http://www.w3.org/2000/01/rdf-schema#subClassOf";
+    private static final String RDFS_LABEL               = "http://www.w3.org/2000/01/rdf-schema#label";
+    private static final String OWL_ONPROPERTY           = "http://www.w3.org/2002/07/owl#onProperty";
+    private static final String OWL_SOMEVALUESFROM       = "http://www.w3.org/2002/07/owl#someValuesFrom";
+    private static final String OWL_ALLVALUESFROM        = "http://www.w3.org/2002/07/owl#allValuesFrom";
     private static final String OWL_QUALIFIEDCARDINALITY = "http://www.w3.org/2002/07/owl#qualifiedCardinality";
-    private static final String OWL_MINCARDINALITY = "http://www.w3.org/2002/07/owl#minQualifiedCardinality";
-    private static final String OWL_MAXCARDINALITY = "http://www.w3.org/2002/07/owl#maxQualifiedCardinality";
+    private static final String OWL_MINCARDINALITY       = "http://www.w3.org/2002/07/owl#minQualifiedCardinality";
+    private static final String OWL_MAXCARDINALITY       = "http://www.w3.org/2002/07/owl#maxQualifiedCardinality";
 
     private Ontology ontology;
     private OntologyModel ontologyModel;
@@ -81,7 +83,7 @@ public class OntologyService {
 
     /**
      * Adds the provided Apache Jena OntModel to the ONT-API ontology
-     * @param model the Acpahe Jena OntModel implementation
+     * @param model the Apache Jena OntModel implementation
      */
     private void addOntology(OntModel model) {
         OntologyManager manager = ontology != null ?
@@ -220,18 +222,27 @@ public class OntologyService {
         return graph;
     }
 
+    /**
+     * Searches for annotation assertion axioms that aim to restrict a particular property defined for a particular
+     * class. Implemented as a SPARQL query as Apache Jena and OWLAPI obviously don't provide an API for getting this
+     * kind of axiom.
+     * @param restriction the potentially annotated OWL restriction
+     * @param onClassIRI the IRI of the OWL class that defined the specified property restriction
+     * @param onPropertyIRI the IRI of the restricted OWL property
+     * @return
+     */
     private String getRestrictionAnnotation(OWLRestriction restriction, String onClassIRI, String onPropertyIRI) {
         String restrictionPredicate = getRestrictionPredicate(restriction);
         if (restrictionPredicate != null && onClassIRI != null && onPropertyIRI != null) {
             String sparqlQueryString = "SELECT ?annotation WHERE {\n" +
-                    "?annotationAxiom <http://www.w3.org/2000/01/rdf-schema#label> ?annotation .\n" +
-                    "?annotationAxiom <http://www.w3.org/2002/07/owl#annotatedTarget> ?restrictionAxiom .\n" +
-                    "?annotationAxiom <http://www.w3.org/2002/07/owl#annotatedProperty> <http://www.w3.org/2000/01/rdf-schema#subClassOf> .\n" +
-                    "?annotationAxiom <http://www.w3.org/2002/07/owl#annotatedSource> <" + onClassIRI + "> .\n" +
-                    "?annotationAxiom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Axiom> .\n" +
-                    "?restrictionAxiom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Restriction> .\n" +
-                    "?restrictionAxiom <http://www.w3.org/2002/07/owl#onProperty> <" + onPropertyIRI + ">.\n" +
-                    "?restrictionAxiom <" + restrictionPredicate + "> ?cardinality .\n" +
+                    "?annotationAxiom <" + RDFS_LABEL + "> ?annotation .\n" +
+                    "?annotationAxiom <" + OWL_ANNOTATED_TARGET + "> ?restriction .\n" +
+                    "?annotationAxiom <" + OWL_ANNOTATED_PROPERTY + "> <" + RDFS_SUBCLASSOF + "> .\n" +
+                    "?annotationAxiom <" + OWL_ANNOTATED_SOURCE + "> <" + onClassIRI + "> .\n" +
+                    "?annotationAxiom <" + RDF_TYPE + "> <" + OWL_AXIOM + "> .\n" +
+                    "?restriction <" + RDF_TYPE + "> <" + OWL_RESTRICTION + "> .\n" +
+                    "?restriction <" + OWL_ONPROPERTY + "> <" + onPropertyIRI + ">.\n" +
+                    "?restriction <" + restrictionPredicate + "> ?cardinality .\n" +
                     "}";
             Query query = QueryFactory.create(sparqlQueryString);
             QueryExecution queryExec = QueryExecutionFactory.create(query, ontologyModel);
